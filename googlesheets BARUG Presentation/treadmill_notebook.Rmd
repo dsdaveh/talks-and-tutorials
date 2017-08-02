@@ -1,0 +1,179 @@
+---
+title: "Desk Treadmill Data Analysis"
+author: "Dave Hurst"
+output: html_notebook
+---
+
+In this notebook I'll be exploring some the fundamentals of working with data using the [googlesheets](https://github.com/jennybc/googlesheets) package.
+
+The data I'll be working with is a personal record of treadmill sessions on my desk treadmill.  I've used the treadmill regularly since I bought it in the summer of 2015, and since I didn't want to pay the monthly fee to automate the results capture, I just manually enter it into a [google spread sheet](https://docs.google.com/spreadsheets/d/1kWDUDTvR6JAEURKMsmDZYeMHDGEoTzhdd5-x9SEsavI/edit?usp=sharing).  You'll need to copy it to your own google drive if you want to play along.
+
+Each row of the gsheet contains
+
++ *Date* of the record (mm/dd/yyyy).  There may be multiple records per day
++ *Start * of each session (rounded to the nearest half hour)
++ *Elapsed time* of each session (from digital readout)
++ *Speed* is the average walking speed as calculated using the formala *Distance / Elapsed time*
++ *Steps* (from digital readout) I assume this is an estimate using distance / time
++ *Calories* (from digital readout) I assume this is also an estimate
++ *distance mi* miles walked in the session (from digital readout)
++ *Cum Daily Distance* miles walked in the day.  I fill this out manually with a *Sum* formula
++ *weight* manually recorded and only rarely filled out
++ *other columns* are just calculated and can be ignored.  They may not be consistent between years
+
+Every year I start a new tab on January 1.
+
+I'll be using these libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(googlesheets)
+library(lubridate)
+library(ggjoy)
+library(cowplot)
+library(FNN)
+library(httpuv)
+```
+```{r, include=FALSE}
+gs_deauth()
+```
+
+The first *gs_*  call will call the authentication automatically  
+
+![Choose account](snap_oauth_acct.png)  ![Grant Permission](snap_oauth_perm.png)  
+
+
+```{r}
+gs_ls()
+```
+
+and again with a little more filtering
+
+```{r}
+tsheets <- gs_ls(regex = 'treadmill', ignore.case=TRUE)
+tsheets
+```
+
+I've got a tab for each year, so I need to put those into a single data_frame
+
+```{r}
+schema <- cols(
+  Date = col_date(format =  "%m/%d/%Y"),
+  `Start time` = col_character(),
+  `Elapsed time` = col_character(),
+  `Speed` = col_double(),
+  `Steps` = col_integer(),
+  Calories = col_integer(),
+  `distance mi` = col_double(),
+  `Cum Daily mi` = col_double(),
+  `weight` = col_integer()
+)
+
+ts <- gs_title('Copy of Treadmill for BARUG')
+steps <- data_frame()
+for (ws in gs_ws_ls(ts)) {
+    steps <- steps %>%
+        bind_rows(
+            gs_read(ts, ws, range= cell_cols(1:9), 
+                    comment = '#', col_types = schema, verbose=FALSE) %>%
+                      mutate(tab = ws, row=row_number()))
+}
+steps <- steps %>% filter(! is.na(Steps))
+names(steps) <- c('Date', 'Start', 'Elapsed', 'Speed', 'Steps', 'Calories', 'Distance', 
+                  'Cum_Daily', 'Weight', 'tab', 'row')
+steps <- steps %>% 
+    mutate(Start = ymd_hm(paste(Date, Start)),
+           mins = map_int( strsplit(Elapsed,':'), function(z) as.integer(z[1]) * 60L +as.integer(z[2])))
+```
+
+Because joy plots are suddenly everywhere, here's an annotated version for this dataset.  It's a bit of digression, but when the data has story to tell, there's just no stopping it.
+
+```{r, message = FALSE, warning=FALSE, fig.height=7}
+#steps %>% ggplot(aes(Date, Steps)) + geom_line()
+steps %>% 
+    mutate(Month = format(Date, "%Y-%b"),
+           Day = day(Date),
+           y = 1,
+           Time = ifelse(hour(Start) < 12, 'AM', 'PM')) %>%
+    ggplot(aes(x=Speed, y=reorder(Month, Date))) + #geom_line()
+    geom_joy(scale = 4, alpha = .6, fill='skyblue') +
+    scale_x_continuous(limits = c(0, 4)) +
+    labs(x = "Speed (mph)", y = '') +
+    ggtitle('Typical Desk Treadmill Walking Speeds') +
+    geom_label(x=0.5,y=6, label='It took a couple\nmonths to get used\nto typing and walking', vjust=0) +
+    annotate('segment', x=0.5, y=6, xend=1.4, yend = 4, color='blue', alpha=.1, size=2) +
+    geom_label(x=3.5,y=2, label='AM Workouts\nCalendar wars') +
+    annotate('segment', x=2.5, y=4, xend=2.5, yend=7, color='blue', alpha=.1, size=2, arrow=arrow()) +
+    geom_label(x=2.5,y=2, label='PM Quest for\nfor Inbox zero') +
+    annotate('segment', x=3.5, y=4, xend=3.5, yend=7, color='blue', alpha=.1, size=2, arrow=arrow()) +
+    geom_label(x=0.5,y=23.5, label='Changed\noffice\nlocation', vjust=0) +
+    annotate('segment', x=0.8, y=25.5, xend=1.1, yend=25.5, color='blue', alpha=.1, size=2, arrow=arrow()) 
+
+```
+
+One problem we can expect with manual data is typos, so let's do a quick sanity check.
+
+```{r, fig.height=2, fig.width=5}
+steps %>% 
+    mutate(steps_pm = Steps / mins,
+           cals_pm = Calories / mins) %>%
+    gather(measure, value, Speed, steps_pm, cals_pm) %>%
+    ggplot(aes(x=1, y=value)) + geom_boxplot() + xlab('') + 
+    theme(axis.text.x = element_blank()) +
+    facet_wrap(~measure, scales='free_y' ) 
+```
+
+Calories and steps look reasonable, but that speed entry is clearly wrong.  Even with coffee I'm not that fast.  Let's find it and fix it just to demonstrate going the other way with the data
+
+```{r}
+too_fast <- steps$Speed > 4
+steps %>% filter(too_fast)
+```
+
+Since workouts are the very definition of routine, we can use KNN to estimate what the value should be based on similar workouts.
+
+```{r}
+data <- steps %>% 
+    select(Distance, Calories, Steps, mins) %>%
+    scale()
+model <- knn.reg(train = data[!too_fast, -1], 
+                 test = data[too_fast, -1],
+                 y = data[!too_fast, 1],
+                 k = 3)
+correct_distance <- model$pred * attr(data, 'scaled:scale')[1] + attr(data, 'scaled:center')[1]
+
+broken_row <- steps %>% filter(too_fast) %>%
+    mutate(Start = format(Start, '%H:%M'))
+fixed_row <- broken_row %>%
+    mutate(Distance = round(correct_distance, 2),
+           Speed = round(60 * correct_distance / mins , 2) )
+fixed_row
+```
+```{r}
+gs_edit_cells(ts, ws=fixed_row$tab, byrow = TRUE, col_names = FALSE,
+              anchor = sprintf('A%d', fixed_row$row + 1),
+              input = fixed_row[1, 1:7])
+```
+
+
+Let's replot the box plots just to verify everything looks better.
+
+```{r, fig.height=2, fig.width=5}
+steps[too_fast, 4:7] <- fixed_row[1, 4:7]
+steps %>% 
+    mutate(steps_pm = Steps / mins,
+           cals_pm = Calories / mins) %>%
+    gather(measure, value, Speed, steps_pm, cals_pm) %>%
+    ggplot(aes(x=1, y=value)) + geom_boxplot() + xlab('') + 
+    theme(axis.text.x = element_blank()) +
+    facet_wrap(~measure, scales='free_y' ) 
+```
+
+```{r rebreak, include=FALSE}
+#put the cells back to the original value so the example runs correctly again
+steps[too_fast, 4:7] <- fixed_row[1, 4:7]
+gs_edit_cells(ts, ws=fixed_row$tab, byrow = TRUE, col_names = FALSE,
+              anchor = sprintf('A%d', fixed_row$row + 1),
+              input = broken_row[1, 1:7])
+```
+

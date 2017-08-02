@@ -1,0 +1,8 @@
+---
+title: "googlesheet Authentication gothas"
+author: 'Dave Hurst'
+output: html_notebook
+---
+
+Before we start, let's acknowledge the extensive documentation on [Managing OAuth Tokens](https://rawgit.com/jennybc/googlesheets/master/vignettes/managing-auth-tokens.html) from the package authors. (*Thank you, thank you, thank you* [\@JennyBryan](https://twitter.com/JennyBryan))
+

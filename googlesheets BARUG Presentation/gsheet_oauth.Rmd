@@ -31,12 +31,16 @@ Let's say I'm interacting with RStudio server off in the cloud [(in the Azure sk
 
 ```{r include=FALSE}
 options(httr_oob_default=FALSE)
+gs_deauth(verbose=FALSE)
 ```
 ```{r}
 library(googlesheets)
-gs_deauth()
 gs_auth()
 ```
+
+The R process hangs here because the browser redirect fails:
+
+![failure](snap_oauth_server.png)
 
 We can work around this by setting an option to allow cutting and pasting the request/response from a local browser with the following option:
 
@@ -44,6 +48,8 @@ We can work around this by setting an option to allow cutting and pasting the re
 options(httr_oob_default=TRUE)
 gs_auth()
 ```
+
+![success](snap_oauth_server2.png) 
 
 ## 2. Service Accounts
 

@@ -21,7 +21,7 @@ Each row of the gsheet contains
 + *weight* manually recorded and only rarely filled out
 + *other columns* are just calculated and can be ignored.  They may not be consistent between years
 
-Every year I start a new tab on January 1.
+Every year I start a new tab on January 1, so I'll need to process each worksheet and merge them into a single dataframe.
 
 I'll be using these libraries
 

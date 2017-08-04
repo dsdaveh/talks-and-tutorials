@@ -86,5 +86,25 @@ At the very least, your `.gitignore` file should have these lines in it so you d
 *-token.rds
 ```
 
+But that probably won't be enough for an IT department in a large company that has Google Apps.  That's because these apps can be tunnels to corporate IT.  You've probably given access to multiple apps to access your Google accounts.  Do you remember who and what access you granted?  You can find out by browsing to https://myaccount.google.com/permissions.
 
+Here's mine, first before granting permissions to Google and then afterwards:
+
+![before](snap_oauth_app3.png)
+
+To them it will be "who the heck is 'tidyverse'"
+
+Solve that by creating a new client id at https://console.developers.google.com and specifying the credentials during authentication
+
+![console](snap_dev_console.png)
+
+```{r}
+client_id <- '654408901126-6ascnjld6hlpgcn4mcgpvpneh6vptvmg.apps.googleusercontent.com'
+client_secret <- 'Sk7Nxc5jQ63zgYiRHulWvC0d'
+gs_auth(new_user=TRUE, key=client_id, secret=client_secret, cache=FALSE)
+```
+
+Now Google authenticates with whatever you used to register the app in the console and negotiate a safe/accepted name with your IT department (the name of your CIO's dog?)
+
+![my_app](snap_dev_app.png)
 

@@ -106,9 +106,8 @@ steps %>%
     annotate('segment', x=2.5, y=4, xend=2.5, yend=7, color='blue', alpha=.1, size=2, arrow=arrow()) +
     geom_label(x=2.5,y=2, label='PM Quest for\nfor Inbox zero') +
     annotate('segment', x=3.5, y=4, xend=3.5, yend=7, color='blue', alpha=.1, size=2, arrow=arrow()) +
-    geom_label(x=0.5,y=23.5, label='Changed\noffice\nlocation', vjust=0) +
+    geom_label(x=0.5,y=23.5, label='New office location\nand\nI joined a gym', vjust=0) +
     annotate('segment', x=0.8, y=25.5, xend=1.1, yend=25.5, color='blue', alpha=.1, size=2, arrow=arrow()) 
-
 ```
 
 One problem we can expect with manual data is typos, so let's do a quick sanity check.

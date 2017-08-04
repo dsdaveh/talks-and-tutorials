@@ -40,7 +40,7 @@ gs_deauth()
 
 The first *gs_*  call will call the authentication automatically  
 
-![Choose account](snap_oauth_acct.png)  ![Grant Permission](snap_oauth_perm.png)  
+![Choose account](image/snap_oauth_acct.png)  ![Grant Permission](image/snap_oauth_perm.png)  
 
 
 ```{r}

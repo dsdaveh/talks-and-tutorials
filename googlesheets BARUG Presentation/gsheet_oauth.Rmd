@@ -1,7 +1,9 @@
 ---
 title: "googlesheet Authentication Gotchas"
 author: 'Dave Hurst'
-output: html_notebook
+output: 
+  html_notebook:
+    fig_caption: no
 ---
 #  {.tabset .tabset-fade .tabset-pills}
 
@@ -20,6 +22,8 @@ Although getting started on googlesheets was trivial, I did have to jump a few h
 
 5. You're updating a really large dataset (response times)  
 5.b ... and you have a pretty chart you want to keep  
+
+---
 
 ## >
 
@@ -77,7 +81,15 @@ gd_user()
 
 ## 3. Security Concerns
 
-So now that we're getting into impersonating others and caching authorization tokens (refresh tokens actually, but still...) we should be sitting up a little straighter
+So now that we're getting into impersonating others and caching authorization tokens (refresh tokens actually, but still...) we should be sitting up a little straighter.
+
+Not all of this can be found in the docs, and in any case there are several steps, so here's the **BLUF** followed by detailed steps:  
+
++ use .gitignore to prevent publishing tokens
++ register your own trusted app name at https://console.developers.google.com
++ while you're there make sure thr Drive API app is enabled
+
+---
 
 At the very least, your `.gitignore` file should have these lines in it so you don't accidently publish this info on GitHub:
 
@@ -98,13 +110,63 @@ Solve that by creating a new client id at https://console.developers.google.com 
 
 ![console](snap_dev_console.png)
 
+You also need to have the Drive API enabled for this to work ([issue #288](https://github.com/jennybc/googlesheets/issues/288)) 
+
+![my_app](snap_app_enable.png)
+
 ```{r}
 client_id <- '654408901126-6ascnjld6hlpgcn4mcgpvpneh6vptvmg.apps.googleusercontent.com'
 client_secret <- 'Sk7Nxc5jQ63zgYiRHulWvC0d'
 gs_auth(new_user=TRUE, key=client_id, secret=client_secret, cache=FALSE)
 ```
 
-Now Google authenticates with whatever you used to register the app in the console and negotiate a safe/accepted name with your IT department (the name of your CIO's dog?)
+Now Google authenticates with whatever you used to register the app in the console and negotiate a safe/accepted name with your IT department.
 
 ![my_app](snap_dev_app.png)
+
+```{r include=FALSE}
+gs_auth(token='dah-token.rds')
+```
+
+## 4. Transferring Ownership
+
+Now we've got the ability to authenticate as a trusted user and create a google sheet. We might want to assign ownership, or at least edit rights back to the user.  Enter `googledrive` ... well almost enter.  You'll need to install it from github
+
+```
+install.packages("devtools")
+devtools::install_github("tidyverse/googledrive")
+```
+
+```{r, include=FALSE}
+devtools::install_github("tidyverse/googledrive")
+```
+
+```{r}
+library(googledrive)
+```
+
+We need to authenticate, since googledrive uses a different client id.  At some point I assume all the google*** packages use a single tidyverse api?
+
+```
+drive_token <- drive_auth()
+saveRDS(drive_token, file = 'dah_drive-token.rds')
+```
+```{r}
+drive_auth(new_user = T, token='dah_drive-token.rds')
+new_sheet <- gs_new("anything")
+drive_share(new_sheet)
+drive_perm_add(new_sheet, email = 'o9e4g9@u.northwestern.edu', role='reader')
+drive_perm_ls(new_sheet)
+gs_delete(new_sheet)
+```
+If you don't want to (or can't) load the dev version, some of what we need is buried (not exported) in googlesheets, so you may be able take advantage of that, but be aware that it is unsupported and will probably be obsoleted by the `googledrive` package ("You'll poke your eye out, kid").
+
+```{r}
+new_sheet <- gs_new("anything")
+googlesheets:::gs_perm_ls(new_sheet)
+googlesheets:::gs_perm_add(new_sheet, email = 'o9e4g9@u.northwestern.edu', role='reader')
+googlesheets:::gs_perm_ls(new_sheet)
+gs_delete(new_sheet)
+```
+
 

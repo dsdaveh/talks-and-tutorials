@@ -72,7 +72,7 @@ gs_deauth(verbose=FALSE)
 gs_auth(token=token_file)
 ```
 
-So if I want to authenticate as a different user, I just need have a token that's been authenticated by that user
+So if I want to authenticate as a different user, I just need have a token that's been authenticated by that user (below I'll use a token file that was created in a different session)
 
 ```{r}
 gd_user()
@@ -113,7 +113,7 @@ Solve that by creating a new client id at https://console.developers.google.com 
 
 You also need to have the Drive API enabled for this to work ([issue #288](https://github.com/jennybc/googlesheets/issues/288)) 
 
-![my_app](snap_app_enable.png)
+![my_app](image/snap_app_enable.png)
 
 ```{r}
 client_id <- '654408901126-6ascnjld6hlpgcn4mcgpvpneh6vptvmg.apps.googleusercontent.com'

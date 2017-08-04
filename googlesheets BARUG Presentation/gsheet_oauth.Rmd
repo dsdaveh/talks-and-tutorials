@@ -1,6 +1,7 @@
 ---
 title: "googlesheet Authentication Gotchas"
 author: 'Dave Hurst'
+date: "August 4, 2017"
 output: 
   html_notebook:
     fig_caption: no
@@ -57,18 +58,18 @@ gs_auth()
 
 ## 2. Service Accounts
 
-Maybe we need to forego interactivity altogether, either because we're using a service account that the end user doesn't have access to, or we want to run in batch mode (asynchronously).
+Maybe we need to forego interactivity altogether, either because we're using a service account that the end user doesn't have access to, or we want to run asynchronously -- think R Markdown docs, or scheduled runs
 
 This is well documented within the package, but here's the tl;dr version
 
 ```{r}
-gs_auth()
+gs_auth(new_user=TRUE, cache=FALSE)
 token_file <- 'dah-token.rds'
 saveRDS(gd_token(), file=token_file)
 
 #to test
 gs_deauth(verbose=FALSE)
-gs_auth(token=token_file, cache=FALSE)
+gs_auth(token=token_file)
 ```
 
 So if I want to authenticate as a different user, I just need have a token that's been authenticated by that user
@@ -137,10 +138,6 @@ install.packages("devtools")
 devtools::install_github("tidyverse/googledrive")
 ```
 
-```{r, include=FALSE}
-devtools::install_github("tidyverse/googledrive")
-```
-
 ```{r}
 library(googledrive)
 ```
@@ -148,25 +145,35 @@ library(googledrive)
 We need to authenticate, since googledrive uses a different client id.  At some point I assume all the google*** packages use a single tidyverse api?
 
 ```
-drive_token <- drive_auth()
+drive_token <- drive_auth(cache=FALSE)
 saveRDS(drive_token, file = 'dah_drive-token.rds')
 ```
 ```{r}
 drive_auth(new_user = T, token='dah_drive-token.rds')
 new_sheet <- gs_new("anything")
 drive_share(new_sheet)
-drive_perm_add(new_sheet, email = 'o9e4g9@u.northwestern.edu', role='reader')
-drive_perm_ls(new_sheet)
+drive_share(new_sheet, user = 'o9e4g9@u.northwestern.edu', role='reader')
+drive_share(new_sheet)
 gs_delete(new_sheet)
 ```
-If you don't want to (or can't) load the dev version, some of what we need is buried (not exported) in googlesheets, so you may be able take advantage of that, but be aware that it is unsupported and will probably be obsoleted by the `googledrive` package ("You'll poke your eye out, kid").
 
-```{r}
+hmmm... it worked last month when I tried it...
+
+If you don't want to (or can't) load the dev version, some of what we need is buried in googlesheets (not exported, so you'll need the triple-colon).  You may be able take advantage of that, but be aware that it is unsupported and will probably be obsoleted by the `googledrive` package (*"You'll poke your eye out, kid"*).  For now, it seems a little more stable, but once googledrive is in CRAN, I'd migrate to that.
+
+
+```{r message=FALSE}
 new_sheet <- gs_new("anything")
 googlesheets:::gs_perm_ls(new_sheet)
-googlesheets:::gs_perm_add(new_sheet, email = 'o9e4g9@u.northwestern.edu', role='reader')
+googlesheets:::gs_perm_add(new_sheet, type = 'user', email = 'o9e4g9@u.northwestern.edu', role='reader')
+googlesheets:::gs_perm_add(new_sheet, type = 'user', email = 'davehurst.dev@gmail.com', role='owner', with_link = FALSE)
 googlesheets:::gs_perm_ls(new_sheet)
+```
+```{r, include=FALSE}
+##cleanup
+gs_auth(new_user = T, token = 'dev-token.rds', verbose = FALSE)
 gs_delete(new_sheet)
+gs_auth(new_user = T, token = 'dah-token.rds', verbose = FALSE)
 ```
 
-
+Note that things get trickier within corporate domains, as other permissions come into play.  You may need to get into deep waters on Web API's with tools like [Fiddler](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0ahUKEwjOks_yqr7VAhWK8CYKHbiXA6UQFggoMAA&url=http%3A%2F%2Fwww.telerik.com%2Ffiddler&usg=AFQjCNGY5eqyh8uRUDSYsPDDbTNL4aUgVw) to find addition settings that are required.  For example, I found the 'with_link' parameter to be required in our corporate domain, but not for the public Google domain.  Pull out your compass, your sailing into uncharted waters.  *Bon Voyage!*

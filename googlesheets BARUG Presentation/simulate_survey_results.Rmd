@@ -1,0 +1,37 @@
+---
+title: "Simulated Survey Results for BARUG"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+```
+
+```{r}
+gs_auth(token='dah-token.rds', verbose = FALSE)
+survey <- gs_title('Copy of BARUG August Survey (Responses)') %>% gs_read()
+questions <- names(survey)
+names(survey) <- c('Time', 'csvLevel', 'nBARUG', 'nMeetups', 'gs_freq', 'goodness', 'good_words', 'animal')
+```
+
+```{r ohe_level}
+survey$csvLevel <- gsub('Notebook,', 'Notebook', survey$csvLevel) #unfortunate comma in question
+level_vals <- strsplit(survey$csvLevel, ',') %>% unlist() %>% unlist() %>% unique() %>% str_trim()
+n_lev <- length(level_vals)
+
+level_mat <- matrix(data = FALSE, nrow = nrow(survey), ncol = n_lev)
+for (lev in 1:length(level_vals)) level_mat[ , lev ] <- grepl(level_vals[lev], survey$csvLevel)
+colnames(level_mat) <- paste0('L', 1:n_lev)
+survey <- bind_cols(survey, as.data.frame(level_mat))
+survey$csvLevel <- NULL
+```
+
+```{r}
+survey
+```
+
+```{r}
+
+```
+

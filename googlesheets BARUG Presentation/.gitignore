@@ -1,2 +1,4 @@
 .httr-oauth*
 *-token.rds
+
+ssdata_tmp.csv

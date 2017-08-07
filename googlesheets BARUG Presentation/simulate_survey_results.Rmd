@@ -7,53 +7,80 @@ output: html_notebook
 library(tidyverse)
 library(stringr)
 library(lubridate)
+library(googlesheets)
+library(purrr)
 ```
 
 ```{r}
 gs_auth(token='dah-token.rds', verbose = FALSE)
-survey <- gs_title('Copy of BARUG August Survey (Responses)') %>% gs_read()
+response_title <- 'Copy of BARUG August Survey (Responses)'
+response_ss <- gs_title(response_title)
+survey <- response_ss %>% gs_read()
 questions <- names(survey)
 names(survey) <- c('Time', 'csvLevel', 'nBARUG', 'nMeetups', 'gs_freq', 'goodness', 'good_words', 'animal')
 survey <- survey %>% filter(! grepl('I have used', csvLevel)) #remove old gs answer
 ```
 
 ```{r ohe_level}
-survey$csvLevel <- gsub('Notebook,', 'Notebook', survey$csvLevel) #unfortunate comma in question
+survey$csvLevel <- gsub('Notebook,', 'Notebook', survey$csvLevel) #unfortunate comma in question response
 level_vals <- strsplit(survey$csvLevel, ',') %>% unlist() %>% unlist() %>% unique() %>% str_trim() %>% sort()
 n_lev <- length(level_vals)
 
 level_mat <- matrix(data = FALSE, nrow = nrow(survey), ncol = n_lev)
 for (lev in 1:length(level_vals)) level_mat[ , lev ] <- grepl(level_vals[lev], survey$csvLevel)
 colnames(level_mat) <- paste0('L', 1:n_lev)
-survey <- bind_cols(survey, as.data.frame(level_mat))
-survey$csvLevel <- NULL
+survey_aug <- bind_cols(survey, as.data.frame(level_mat))
+survey_aug$csvLevel <- NULL
+survey_aug
 ```
 
-```{r}
-survey
-```
 
 ```{r}
+set.seed <- nrow(survey)
 n_sim <- 10
 clip <- function(x, min, max) ifelse(x > max, max, ifelse(x < min, min, x)) 
 cap_pois <- function(n, lambda, max) clip(rpois(n, lambda), 1, max)
 cap_norm <- function(n, m, s, max) clip(round(rnorm(n, m, s)), 1, max) 
 
-vtime <- now() + hours(-n_sim:-1)
+vtime <- (now() + hours(-n_sim:-1)) %>% as.character()
 vnbarug <- cap_pois(n_sim, 4, 10)
 vnmeet <- cap_pois(n_sim, 5, 10)
 freq_resp <- c('Multiple times daily', 'About once a day', 'A couple time a week', 'Rarely', 'Never')
 vfreq <- freq_resp[cap_pois(n_sim, 2, 5)]
-vanimal <- sort(unique(survey$animal))[cap_norm(10, 3, 1.3, 5)]
+vanimal <- sort(unique(survey$animal))[cap_norm(n_sim, 3, 1.3, 5)]
 vgood <- rbinom(n_sim, 1, 0.8)
 vgood[sample(1:n_sim, n_sim %/% 10)] <- NA
 lev_prob <- c(.9, .2, .15, .4, .1, .2, .75)
 lev_sim <- matrix(nrow=n_sim, ncol = n_lev )
 for (i in 1:n_lev) lev_sim[ ,i] <- rbinom(n_sim, 1, lev_prob[i])
 for (i in 1:n_lev) lev_sim[ ,i] <- ifelse( lev_sim[ ,i] == 1, paste0(level_vals[i], ','), '')
-lev_str <- mapply(lev_sim, 2, paste0)
+lev_str <- lev_sim %>% as.tibble() %>% 
+    unite(levels, starts_with('V'), sep='') %>% 
+    .[[1]] %>% str_replace(',$', '')
      
-sim <- data_frame(Time = vtime, nBARUG = vnbarug, nMeetup = vnmeet, goodness = vgood,
-                  good_words = "", animal = vanimal)
+sim <- data_frame(Time = vtime, csvLevel = lev_str, nBARUG = vnbarug, nMeetups = vnmeet, 
+                  gs_freq = vfreq, goodness = vgood, good_words = "", animal = vanimal ) 
 ```
 
+This is really slow.  For anything larger than 10 rows use
+
+```
+bind_rows(survey, sim) %>% set_names(questions) %>% write.csv('tmp_survey.csv', row.names=FALSE)
+gs_upload('tmp_survey.csv', sheet_title=response_title, overwrite=T)
+```
+```{r}
+response_ss %>% gs_add_row(input = sim)
+```
+
+```{r}
+sim %>% gather(MeetupType, MeetupFrequency, nBARUG, nMeetups) %>%
+    ggplot(aes(MeetupFrequency)) + geom_histogram(bins=10) + facet_wrap(~MeetupType)
+```
+```{r}
+sim %>% mutate( goodness = ifelse(is.na(goodness), 'No opinion', ifelse(goodness > 0, 'Yes', 'No'))) %>% 
+    ggplot(aes(goodness)) + geom_bar()
+```
+
+```{r}
+sim %>% ggplot(aes(reorder(animal, order(animal)))) + geom_bar() + coord_flip() + xlab('Spirit Animal')
+```

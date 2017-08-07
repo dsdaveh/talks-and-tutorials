@@ -32,7 +32,7 @@ Although getting started on googlesheets was trivial, I did have to jump a few h
 
 ## 1. Server Authentication
 
-Let's say I'm interacting with RStudio server off in the cloud [(in the Azure sky)](http://52.183.92.138:8787/).  Then authorizing interactively takes me to the Google authentication page properly, but gets lost on the round trip.
+Let's say I'm interacting with RStudio server off in the cloud [(in the Azure sky)](http://52.183.92.138:8787/).  Authorizing interactively takes me to the Google authentication page properly, but gets lost on the round trip.
 
 ```{r include=FALSE}
 options(httr_oob_default=FALSE)
@@ -92,6 +92,8 @@ Not all of this can be found in the docs, and in any case there are several step
 
 ---
 
+** Details **
+
 At the very least, your `.gitignore` file should have these lines in it so you don't accidently publish this info on GitHub:
 
 ```
@@ -99,7 +101,7 @@ At the very least, your `.gitignore` file should have these lines in it so you d
 *-token.rds
 ```
 
-But that probably won't be enough for an IT department in a large company that has Google Apps.  That's because these apps can be tunnels to corporate IT.  You've probably given access to multiple apps to access your Google accounts.  Do you remember who and what access you granted?  You can find out by browsing to https://myaccount.google.com/permissions.
+But that probably won't be enough for an IT department in a large company that has Google Apps.  That's because these apps can be tunnels to corporate IP.  You've probably given access to multiple apps to access your Google accounts.  Do you remember who and what access you granted?  You can find out by browsing to https://myaccount.google.com/permissions.
 
 Here's mine, first before granting permissions to Google and then afterwards:
 
@@ -176,7 +178,7 @@ gs_delete(new_sheet)
 gs_auth(new_user = T, token = 'dah-token.rds', verbose = FALSE)
 ```
 
-Note that things get trickier within corporate domains, as other permissions come into play.  You may need to get into deep waters on Web API's with tools like [Fiddler](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0ahUKEwjOks_yqr7VAhWK8CYKHbiXA6UQFggoMAA&url=http%3A%2F%2Fwww.telerik.com%2Ffiddler&usg=AFQjCNGY5eqyh8uRUDSYsPDDbTNL4aUgVw) to find addition settings that are required.  For example, I found the 'with_link' parameter to be required in our corporate domain, but not for the public Google domain.  Pull out your compass, your sailing into uncharted waters.  *Bon Voyage!*
+Note that things get trickier within corporate domains, as other permissions come into play.  You may need to get into deep waters on Web API's with tools like [Fiddler](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0ahUKEwjOks_yqr7VAhWK8CYKHbiXA6UQFggoMAA&url=http%3A%2F%2Fwww.telerik.com%2Ffiddler&usg=AFQjCNGY5eqyh8uRUDSYsPDDbTNL4aUgVw) to find addition settings that are required.  For example, I found the `with_link` parameter to be required in our corporate domain, but not for the public Google domain.  Pull out your compass, you're sailing into uncharted waters.  *Bon Voyage!*
 
 ## 5. Performance
 

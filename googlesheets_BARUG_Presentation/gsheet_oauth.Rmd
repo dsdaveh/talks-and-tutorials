@@ -50,12 +50,12 @@ The R process hangs here because the browser redirect fails:
 
 We can work around this by setting an option to allow cutting and pasting the request/response from a local browser with the following option:
 
+request/response from a local browser with the following option:
+
 ```{r}
 options(httr_oob_default=TRUE)
 gs_auth()
 ```
-
-![success](image/snap_oauth_server2.png) 
 
 ## 2. Service Accounts
 
@@ -80,6 +80,7 @@ gd_user()
 gs_auth(new_user=TRUE, token='nwu-token.rds', cache=FALSE)
 gd_user()
 ```
+
 
 ## 3. Security Concerns
 

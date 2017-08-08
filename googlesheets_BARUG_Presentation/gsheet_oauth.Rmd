@@ -68,10 +68,15 @@ gs_auth(new_user=TRUE, cache=FALSE)
 token_file <- 'dah-token.rds'
 saveRDS(gd_token(), file=token_file)
 
-#to test
+```
+
+Now we can authenticate without needing user interaction:
+
+```{r}
 gs_deauth(verbose=FALSE)
 gs_auth(token=token_file)
 ```
+
 
 So if I want to authenticate as a different user, I just need have a token that's been authenticated by that user (below I'll use a token file that was created in a different session)
 

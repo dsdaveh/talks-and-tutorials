@@ -1,7 +1,6 @@
 # googlesheets
 
 Presented at Bay Area R Users Group - [BARUG, August 8^th^, 2017](https://www.meetup.com/R-Users/events/242005538/)
-A single place for public presentations and tutorials
 
 + [Desk Treadmill Data Analysis](https://rawgit.com/dsdaveh/talks-and-tutorials/master/googlesheets%20BARUG%20Presentation/treadmill_notebook.nb.html) - a motivating example
 + [Authentication and Performance Considerations](https://rawgit.com/dsdaveh/talks-and-tutorials/master/googlesheets%20BARUG%20Presentation/gsheet_oauth.nb.html)  

@@ -34,6 +34,7 @@ Although getting started on googlesheets was trivial, I did have to jump a few h
 
 Let's say I'm interacting with RStudio server off in the cloud [(in the Azure sky)](http://52.183.92.138:8787/).  Authorizing interactively takes me to the Google authentication page properly, but gets lost on the round trip.
 
+
 ```{r include=FALSE}
 options(httr_oob_default=FALSE)
 gs_deauth(verbose=FALSE)
@@ -141,6 +142,7 @@ devtools::install_github("tidyverse/googledrive")
 ```
 
 ```{r}
+library(tidyverse)
 library(googledrive)
 ```
 
@@ -151,15 +153,28 @@ drive_token <- drive_auth(cache=FALSE)
 saveRDS(drive_token, file = 'dah_drive-token.rds')
 ```
 ```{r}
+get_drive_perms <- function(file) {
+    perm_list <- file$drive_resource[[1]]$permissions
+    perms <- tibble(seq = 1:length(perm_list))
+    perms$emailAddress <- purrr::map_chr(file$drive_resource[[1]]$permissions, 'emailAddress')
+    perms$displayName <- purrr::map_chr(file$drive_resource[[1]]$permissions, 'displayName')
+    perms$type <- purrr::map_chr(file$drive_resource[[1]]$permissions, 'type')
+    perms$role <- purrr::map_chr(file$drive_resource[[1]]$permissions, 'role')
+    perms$perm_id <- purrr::map_chr(file$drive_resource[[1]]$permissions, 'id')
+    return(perms)
+}
 drive_auth(new_user = T, token='dah_drive-token.rds')
 new_sheet <- gs_new("anything")
-drive_share(new_sheet)
-drive_share(new_sheet, user = 'o9e4g9@u.northwestern.edu', role='reader')
-drive_share(new_sheet)
+handle <- drive_get(as_id(new_sheet$sheet_key))
+get_drive_perms(handle)
+drive_share(handle, emailAddress = 'o9e4g9@u.northwestern.edu', role='reader', type = 'user')
+#drive_share(handle, emailAddress = 'davehurst.dev@gmail.com', role='owner', type = 'user' )
+handle <- drive_get(as_id(new_sheet$sheet_key))
+get_drive_perms(handle)
 gs_delete(new_sheet)
 ```
 
-hmmm... it worked last month when I tried it...
+*Caveat* - I'm still working through googledrive, so the above may not be the most efficient example
 
 If you don't want to (or can't) load the dev version, some of what we need is buried in googlesheets (not exported, so you'll need the triple-colon).  You may be able take advantage of that, but be aware that it is unsupported and will probably be obsoleted by the `googledrive` package (*"You'll poke your eye out, kid"*).  For now, it seems a little more stable, but once googledrive is in CRAN, I'd migrate to that.
 

@@ -92,7 +92,7 @@ Not all of this can be found in the docs, and in any case there are several step
 
 ---
 
-** Details **
+**Details**
 
 At the very least, your `.gitignore` file should have these lines in it so you don't accidently publish this info on GitHub:
 
@@ -117,7 +117,7 @@ You also need to have the Drive API enabled for this to work ([issue #288](https
 
 ![my_app](image/snap_app_enable.png)
 
-```{r}
+```
 client_id <- '654408901126-6ascnjld6hlpgcn4mcgpvpneh6vptvmg.apps.googleusercontent.com'
 client_secret <- 'Sk7Nxc5jQ63zgYiRHulWvC0d'
 gs_auth(new_user=TRUE, key=client_id, secret=client_secret, cache=FALSE)
@@ -199,5 +199,5 @@ Note that all this is a moving target, so again pay careful attention to the dat
 
 So why not just always use  `gs_upload`?  Because sadly gs_upload will stomp on your Google Sheet.  Those extra worksheets, charts and pivot tables?  Gone, gone and gone :-(
 
-With a little more work though, you can preserve edits and augmentations by linking the data from the sheet that googlesheets updates, and making changes to that linked sheet.  The key to this is the `IMPORTRANGE` function in Sheets, I've got a detailed write up on that here: [Automated Google Sheets updates for Charts and Pivot Tables](http://rpubs.com/dsdaveh/280034)
+With a little more work though, you can preserve edits and augmentations by linking the data from the sheet that googlesheets updates, and making changes to that linked sheet.  The key to this is the `IMPORTRANGE` function in Sheets, I've got a detailed write up on that here: [Automated Google Sheets updates for Charts and Pivot Tables](https://rawgit.com/dsdaveh/talks-and-tutorials/master/googlesheets%20BARUG%20Presentation/gs_upload_notebook.nb.html)
 

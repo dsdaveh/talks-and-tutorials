@@ -23,7 +23,7 @@ survey <- survey %>% filter(! grepl('I have used', csvLevel)) #remove old gs ans
 
 ```{r ohe_level}
 survey$csvLevel <- gsub('Notebook,', 'Notebook', survey$csvLevel) #unfortunate comma in question response
-level_vals <- strsplit(survey$csvLevel, ',') %>% unlist() %>% unlist() %>% unique() %>% str_trim() %>% sort()
+level_vals <- strsplit(survey$csvLevel, ',') %>% unlist() %>% unlist() %>% str_trim() %>% unique() %>% sort()
 n_lev <- length(level_vals)
 
 level_mat <- matrix(data = FALSE, nrow = nrow(survey), ncol = n_lev)

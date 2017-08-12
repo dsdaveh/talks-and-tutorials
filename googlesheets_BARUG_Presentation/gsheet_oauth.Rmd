@@ -50,12 +50,12 @@ The R process hangs here because the browser redirect fails:
 
 We can work around this by setting an option to allow cutting and pasting the request/response from a local browser with the following option:
 
+request/response from a local browser with the following option:
+
 ```{r}
 options(httr_oob_default=TRUE)
 gs_auth()
 ```
-
-![success](image/snap_oauth_server2.png) 
 
 ## 2. Service Accounts
 
@@ -68,10 +68,15 @@ gs_auth(new_user=TRUE, cache=FALSE)
 token_file <- 'dah-token.rds'
 saveRDS(gd_token(), file=token_file)
 
-#to test
+```
+
+Now we can authenticate without needing user interaction:
+
+```{r}
 gs_deauth(verbose=FALSE)
 gs_auth(token=token_file)
 ```
+
 
 So if I want to authenticate as a different user, I just need have a token that's been authenticated by that user (below I'll use a token file that was created in a different session)
 
@@ -80,6 +85,7 @@ gd_user()
 gs_auth(new_user=TRUE, token='nwu-token.rds', cache=FALSE)
 gd_user()
 ```
+
 
 ## 3. Security Concerns
 

@@ -171,7 +171,7 @@ drive_share(handle, emailAddress = 'o9e4g9@u.northwestern.edu', role='reader', t
 #drive_share(handle, emailAddress = 'davehurst.dev@gmail.com', role='owner', type = 'user' )
 handle <- drive_get(as_id(new_sheet$sheet_key))
 get_drive_perms(handle)
-drive_rm(handle)
+drive_trash(handle)
 ```
 
 *Caveat* - I'm still working through googledrive, so the above may not be the most efficient example

@@ -18,6 +18,8 @@ gs_auth(new_user = TRUE, token = 'dah-token.rds')
 sheet_name <- 'Copy of BARUG August Survey (Responses)'
 questions <- character()
 level_vals <- character()
+sim_button_value <- 0
+refresh_button_value <- -1
 
 get_survey_data <- function(action) {
     message('get_survey_data action', action)
@@ -30,31 +32,42 @@ get_survey_data <- function(action) {
     n_lev <- length(level_vals)
     
     level_mat <- matrix(data = FALSE, nrow = nrow(survey), ncol = n_lev)
-    for (lev in 1:length(level_vals)) level_mat[ , lev ] <- grepl(level_vals[lev], survey$csvLevel)
+    for (lev in 1:length(level_vals)) level_mat[ , lev ] <- 
+      grepl(level_vals[lev], survey$csvLevel) %>%
+      as.integer()
     colnames(level_mat) <- paste0('L', 1:n_lev)
     survey_aug <- bind_cols(survey, as.data.frame(level_mat))
     survey_aug$csvLevel <- NULL
     survey_aug
 }
 
-simulate_rows <- function(action) {
-    message('simulate_rows action', action)
+simulate_rows <- function(n) {
+    message('simulate_rows action: nrows = ', n)
+  
+    #TODO - this section is copied from get_survey_data() ... should be a common function
+    #update maybe just get rid of get_survey_data ?
     survey <- gs_title(sheet_name) %>% gs_read()
-    questions <- names(survey)
+    questions <<- names(survey)
     names(survey) <- c('Time', 'csvLevel', 'nBARUG', 'nMeetups', 'gs_freq', 'goodness', 'good_words', 'animal')
     survey <- survey %>% filter(! grepl('I have used', csvLevel)) #remove old gs answer
     survey$csvLevel <- gsub('Notebook,', 'Notebook', survey$csvLevel) #unfortunate comma in question response
-    level_vals <- strsplit(survey$csvLevel, ',') %>% unlist() %>% unlist() %>% str_trim() %>% unique() %>% sort()
+    level_vals <<- strsplit(survey$csvLevel, ',') %>% unlist() %>% unlist() %>% str_trim() %>% unique() %>% sort()
+    level_vals <<- level_vals[! grepl('NANA', level_vals)] #kludge
     n_lev <- length(level_vals)
     
     level_mat <- matrix(data = FALSE, nrow = nrow(survey), ncol = n_lev)
-    for (lev in 1:length(level_vals)) level_mat[ , lev ] <- grepl(level_vals[lev], survey$csvLevel)
+    for (lev in 1:length(level_vals)) level_mat[ , lev ] <- 
+      grepl(level_vals[lev], survey$csvLevel) %>%
+      as.integer()    
     colnames(level_mat) <- paste0('L', 1:n_lev)
     survey_aug <- bind_cols(survey, as.data.frame(level_mat))
     survey_aug$csvLevel <- NULL
+    ##### end of copy paste kludge/TODO
+    
+    if (n <= 0) return(survey_aug)
     
     set.seed <- nrow(survey)
-    n_sim <- 10
+    n_sim <- n
     clip <- function(x, min, max) ifelse(x > max, max, ifelse(x < min, min, x)) 
     cap_pois <- function(n, lambda, max) clip(rpois(n, lambda), 1, max)
     cap_norm <- function(n, m, s, max) clip(round(rnorm(n, m, s)), 1, max) 
@@ -86,7 +99,8 @@ simulate_rows <- function(action) {
                       gs_freq = vfreq, goodness = vgood, good_words = "", animal = vanimal ) %>%
         bind_cols(lev_sim_df)
     
-        bind_rows(survey_aug, sim2)
+    bind_rows(survey_aug, sim2)
+    
 }
 
 # Define UI for application that draws a histogram
@@ -118,16 +132,23 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
-    resp <- reactive({get_survey_data(input$refresh)})
-    resp <- reactive({simulate_rows(input$sim_rows)})
+    resp <- reactive({
+        if (input$sim_rows > sim_button_value) {
+            simulate_rows(10)
+        } else if (input$refresh > refresh_button_value) {
+            refresh_button_value <<- 0
+            simulate_rows(0)
+        }
+    })
+    #resp0 <- reactive({get_survey_data(input$refresh)})
     
     output$rad_levels <- renderPlot({
         levs <- 100 * colSums( resp()[which(grepl('^L', names(resp())))]) / nrow(resp())
         print(names(resp()))
-        level_abbr <- c('basic\nscript', 'published\n markdown', 'googlesheets', 'CRAN\npackage', 'shared\nfunctions', '%>%' )
+        level_abbr <- c('basic\nscript', 'published\n markdown', 'googlesheets', 'R Markdown', 'CRAN\npackage', 'shared\nfunctions', '%>%' )
         par.orig <- par(ps=12)
+        print(levs)
         radial.plot(levs, labels=level_abbr, rp.type='p', radial.lim=c(0,100), line.col='skyblue', start=3.14/6,poly.col = 'blue') 
-        #hist(resp()$nBARUG, breaks = 11, col = 'darkgray', border = 'white', xlab='', main = 'BARUG meetings attended')
     })
     
     output$hist_barug <- renderPlot({

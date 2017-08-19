@@ -4,9 +4,10 @@ author: 'Dave Hurst'
 date: "August 4, 2017"
 output: 
   html_notebook:
+    toc: true
+    toc_float: true
     fig_caption: no
 ---
-#  {.tabset .tabset-fade .tabset-pills}
 
 Before we start, let's acknowledge the extensive documentation on [Managing OAuth Tokens](https://rawgit.com/jennybc/googlesheets/master/vignettes/managing-auth-tokens.html) from the package authors. (*Thank you, thank you, thank you* [\@JennyBryan](https://twitter.com/JennyBryan))
 
@@ -25,10 +26,6 @@ Although getting started on googlesheets was trivial, I did have to jump a few h
 5.b ... and you have a pretty chart you want to keep  
 
 ---
-
-## >
-
- ^--- Click on the tabs/pills above to step through each potential gotcha ---^
 
 ## 1. Server Authentication
 

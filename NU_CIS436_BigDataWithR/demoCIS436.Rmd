@@ -1,0 +1,251 @@
+---
+title: "Databases w/ R"
+output: html_notebook
+---
+
+Borrowed and adapted from (https://github.com/edgararuiz/db_best_practices_2018)
+Uses environnment from [rstudio::conf 2018](https://github.com/rstudio/bigdataclass2018)
+
+```{r}
+library(DBI)
+library(odbc)
+
+# con <- dbConnect(odbc(), 
+#                       Driver = "SQL Server", 
+#                       Server = "localhost\\SQLEXPRESS", 
+#                       Database = "master", 
+#                       Trusted_Connection = "True")
+
+library(odbc)
+con <- dbConnect(odbc::odbc(), "Postgres Dev")
+```
+
+
+```{r}
+# dbGetQuery(con, "Select Top 10 * From datawarehouse.flight")
+dbGetQuery(con, "Select * From datawarehouse.flight LIMIT 10")
+```
+
+```{sql, connection = con}
+-- Select top 10 * from "flights"
+Select * From datawarehouse.flight LIMIT 10
+```
+
+```{sql, connection = con, output.var = "my_var"}
+Select * From datawarehouse.flight LIMIT 10
+```
+```{r}
+my_var
+```
+
+
+## dplyr & dbplyr
+
+```{r}
+library(dplyr)
+library(dbplyr)
+
+```
+
+
+```{r}
+flights <- tbl(con, in_schema("datawarehouse", "flight"))
+```
+
+```{r}
+object.size(flights)
+```
+
+```{r}
+flights
+
+```
+
+
+```{r}
+flights %>%
+  tally()
+```
+
+```{r}
+flights %>%
+  group_by(month) %>%
+  tally() 
+```
+
+### show_query()
+
+```{r}
+flights %>%
+  group_by(dest) %>%
+  tally() %>%
+  show_query()
+```
+
+```{r}
+complex_example <- flights %>%
+  filter(distance > 100) %>%
+  group_by(uniquecarrier, dest, month) %>%
+  tally() %>%
+  filter(n > 10) %>%
+  group_by(uniquecarrier, dest) %>%
+  summarize(n_avg = mean(n, na.rm = T) %>% as.integer()) %>%
+  arrange(desc(n_avg))
+
+complex_example
+```
+```{r}
+complex_example %>% show_query()
+```
+
+
+### join tables
+
+```{r}
+#airports <- tbl(con, "airports")
+airports <- tbl(con, in_schema("datawarehouse", "airport"))
+```
+
+```{r}
+new_flights <- flights %>%
+  left_join(airports, by = c("dest" = "airport"))
+
+new_flights
+```
+
+```{r}
+new_flights %>%
+  group_by(state) %>%
+  tally() %>%
+  arrange(desc(n))
+```
+
+### collect()
+
+```{r}
+by_location <- new_flights %>%
+  group_by(dest, long, lat) %>%
+  tally() %>%
+  collect() %>%
+  mutate(n = as.numeric(n))
+
+by_location 
+```
+
+
+
+### plotting
+
+```{r, fig.width = 10, fig.height = 5}
+library(ggplot2) 
+
+by_location %>%
+  ggplot() +
+  geom_point(aes(x = long, y= lat, size = n, color = n), alpha = 0.5)
+
+```
+
+### Direct insights
+
+```{r}
+new_flights %>%
+  group_by(dest, airportname) %>%
+  tally() %>%
+  arrange(desc(n)) %>%  # desc() inside arrange() get the top counts
+  head(10)
+
+```
+
+### pull() command
+
+```{r}
+top_names <- new_flights %>%
+  group_by(dest) %>%
+  tally() %>%
+  arrange(desc(n)) %>%
+  head(10) %>% 
+  collect() %>%
+  pull("dest")
+
+top_names
+```
+
+### Take advantage of dplyr's laziness
+
+```{r}
+top_flights <- new_flights %>%
+  filter(dest %in% top_names)
+
+```
+
+Use `View()` to preview some of the data in the familiar data viewer
+
+```{r}
+top_flights %>%
+  head(1000) %>%
+  collect() %>%
+  View("top_flights")
+```
+
+Easily transition from data manipulation to plotting, without needing to import the data
+
+```{r}
+top_flights %>%
+  group_by(month) %>%
+  tally() %>%
+  collect() %>%
+  mutate(n = as.integer(n)) %>%
+  ggplot() +
+    geom_area(aes(x = month , y = n), fill = "blue", alpha = 0.5)
+  
+```
+
+
+Thanks to the `tidyverse` approach, an entirly new plot can be built by adding one single line, and the data is still summarized inside the database
+
+```{r}
+top_flights %>%
+  filter(distance > 2000) %>%  # Added 
+  group_by(month) %>%
+  tally() %>%
+  collect() %>%
+  mutate(n = as.integer(n)) %>%
+  ggplot() +
+    geom_area(aes(x = month , y = n), fill = "blue", alpha = 0.5)
+  
+```
+
+### Histograms
+
+```{r}
+library(dbplot)
+
+flights %>%
+  dbplot_histogram(arrdelay, binwidth = 50)
+
+```
+## Temporary tables
+
+```{r}
+temp_flights <- new_flights %>%
+  group_by(dest) %>%
+  tally() 
+```
+
+```{r}
+temp_flights <- copy_to(con, temp_flights, "temp_flights")
+```
+
+
+```{r}
+temp_flights %>%
+  arrange(desc(n))
+```
+
+```{r}
+dbDisconnect(con)
+```
+
+
+
+

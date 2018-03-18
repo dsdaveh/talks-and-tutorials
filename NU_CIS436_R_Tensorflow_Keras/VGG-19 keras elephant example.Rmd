@@ -1,0 +1,39 @@
+---
+title: "VGG-19 Elephant example"
+output: html_notebook
+---
+
+```{r}
+library(jpeg)
+library(keras)
+```
+
+
+
+```{r}
+jpg <- readJPEG('elephant_224x224.jpeg')
+plot(1:2, 1:2, type='n', asp = 1)
+rasterImage(jpg,1,1,2,2)
+```
+
+```{r}
+# instantiate the model
+model <- application_vgg19(weights = 'imagenet')
+
+# load the image
+img_path <- "elephant_224x224.jpeg"
+img <- image_load(img_path, target_size = c(224,224))
+x <- image_to_array(img)
+```
+
+```{r}
+# ensure we have a 4d tensor with single element in the batch dimension,
+# the preprocess the input for prediction using resnet50
+x <- array_reshape(x, c(1, dim(x)))
+x <- imagenet_preprocess_input(x)
+
+# make predictions then decode and print them
+preds <- model %>% predict(x)
+imagenet_decode_predictions(preds, top = 5)[[1]]
+```
+

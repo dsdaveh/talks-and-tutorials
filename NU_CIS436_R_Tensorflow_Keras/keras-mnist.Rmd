@@ -8,6 +8,7 @@ output: html_notebook
 ```{r}
 library(keras)
 # install_keras()
+backend()
 ```
 
 ```{r}
@@ -42,6 +43,8 @@ glimpse(x_train_vec)
 
 
 ```{r}
+y_test_orig <- y_test
+
 glimpse(y_train)
 y_train <- to_categorical(y_train, 10)
 y_test <- to_categorical(y_test, 10)
@@ -86,6 +89,7 @@ model %>% evaluate(x_test_vec, y_test)
 
 ```{r}
 model %>% predict_classes(x_test_vec) %>% head(10)
+y_test_orig %>% head(10)
 ```
 ```{r}
 plot(history)
@@ -127,7 +131,8 @@ model2 %>% compile(
 history2 <- model2 %>% fit(
   x_train_conv, y_train,
   epochs = 15, batch_size = 128, 
-  validation_split = 0.2
+  validation_split = 0.2,
+  verbose = 2
 )
 ```
 

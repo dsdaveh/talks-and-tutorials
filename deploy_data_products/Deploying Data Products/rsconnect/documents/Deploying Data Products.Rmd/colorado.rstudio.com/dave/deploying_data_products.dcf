@@ -5,8 +5,8 @@ account: dave
 server: colorado.rstudio.com
 hostUrl: http://colorado.rstudio.com:3939/__api__
 appId: 1546
-bundleId: 18858
+bundleId: 18893
 url: http://colorado.rstudio.com:3939/deploy-data/
-when: 1539101058.32165
+when: 1539127345.75972
 asMultiple: FALSE
 asStatic: FALSE

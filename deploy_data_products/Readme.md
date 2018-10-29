@@ -1,1 +1,1 @@
-(http://colorado.rstudio.com/rsc/deploy-data/)
+Deployed Presentation: http://colorado.rstudio.com/rsc/deploy-data/

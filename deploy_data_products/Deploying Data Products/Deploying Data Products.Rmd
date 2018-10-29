@@ -379,7 +379,7 @@ Try it out in Googlesheets:
 
 * open a Google Sheet
 * Select any Cell 
-* =importxml("http://colorado.rstudio.com/rsc/content/1391/forecast?forecast_duration=9&series=All", "//tr")
+* `=importxml("http://colorado.rstudio.com/rsc/content/1391/forecast?forecast_duration=9&series=All", "//tr")`
 
 In Excel: _Data_ > _From Web_  http://colorado.rstudio.com/rsc/content/1391/forecast?forecast_duration=9&series=All
 
